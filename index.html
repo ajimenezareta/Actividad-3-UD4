@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Misión: Territorio en capas</title>
+<style>
+:root{
+  --bg:#020817;
+  --panel:#08142b;
+  --panel2:#0d1d3b;
+  --ink:#f7f9ff;
+  --muted:#9fb0d1;
+  --white:#fff;
+  --dark:#111a2f;
+  --red:#ff4b4f;
+  --green:#42d768;
+  --blue:#4f8dff;
+  --cyan:#47d6e8;
+  --yellow:#ffd54c;
+  --purple:#9d78ff;
+  --shadow:0 16px 40px rgba(0,0,0,.34);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family:Inter,ui-rounded,"Arial Rounded MT Bold",Arial,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(circle at 12% 15%,rgba(52,90,176,.20),transparent 23%),
+    radial-gradient(circle at 88% 18%,rgba(71,214,232,.10),transparent 22%),
+    linear-gradient(180deg,#020717 0%,#020716 100%);
+  overflow:hidden;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0;
+  pointer-events:none; z-index:-2;
+  background-image:
+    linear-gradient(rgba(126,155,216,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(126,155,216,.035) 1px,transparent 1px);
+  background-size:48px 48px;
+}
+body::after{
+  content:"";
+  position:fixed; inset:0;
+  pointer-events:none; z-index:-1;
+  background:
+    radial-gradient(circle at 7% 20%,rgba(255,255,255,.9) 0 1px,transparent 1.8px),
+    radial-gradient(circle at 81% 17%,rgba(255,255,255,.75) 0 1px,transparent 1.8px),
+    radial-gradient(circle at 23% 76%,rgba(255,255,255,.7) 0 1px,transparent 1.8px),
+    radial-gradient(circle at 68% 83%,rgba(255,255,255,.8) 0 1px,transparent 1.8px);
+}
+button{font:inherit}
+.game{
+  width:min(1650px,100%);
+  height:100vh;
+  margin:0 auto;
+  padding:10px 16px 12px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  margin-bottom:8px;
+}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.brand-icon{
+  width:48px;height:48px;border-radius:12px;display:grid;place-items:center;
+  font-size:24px;
+  background:linear-gradient(145deg,#ff544c,#d92649);
+  border:1px solid rgba(255,255,255,.25);
+  box-shadow:var(--shadow);
+}
+h1{
+  margin:0;
+  font-size:clamp(20px,2.5vw,32px);
+  line-height:1;
+  text-transform:uppercase;
+  letter-spacing:-1px;
+}
+.top-actions{display:flex;gap:10px;align-items:center}
+.icon-btn{
+  width:40px;height:40px;border-radius:12px;border:1px solid rgba(255,255,255,.15);
+  background:#0b1732;color:white;cursor:pointer;font-size:20px;
+  box-shadow:0 10px 24px rgba(0,0,0,.24);
+}
+.icon-btn:hover{transform:translateY(-2px)}
+.round-pill,.counter{
+  height:42px;display:grid;place-items:center;border-radius:13px;
+  background:white;color:#11182b;font-weight:1000;box-shadow:var(--shadow);
+}
+.round-pill{padding:0 16px;font-size:15px;text-transform:uppercase}
+.counter{min-width:96px;padding:0 18px;font-size:25px}
+
+.mission-row{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  margin-bottom:8px;
+}
+.instruction{
+  display:flex;align-items:center;gap:10px;
+  width:max-content;max-width:100%;
+  padding:8px 13px;border-radius:12px;
+  background:#fff;color:#121a2e;font-weight:1000;
+  box-shadow:var(--shadow);
+}
+.instruction small{font-size:clamp(12px,1.2vw,16px)}
+.legend{
+  display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;
+}
+.legend span{
+  padding:6px 10px;border-radius:999px;background:#0b1732;
+  border:1px solid rgba(255,255,255,.12);color:#cbd6ef;font-size:13px;font-weight:800;
+}
+
+.stage{
+  border:3px dashed rgba(118,139,192,.28);
+  background:linear-gradient(180deg,rgba(10,24,52,.96),rgba(5,14,34,.96));
+  border-radius:26px;
+  padding:12px 14px;
+  min-height:0;
+  flex:1;
+  overflow:hidden;
+  box-shadow:inset 0 0 70px rgba(73,118,235,.07);
+  display:flex;
+  flex-direction:column;
+}
+.stage-head{
+  display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:8px;
+}
+.stage-title{margin:0;font-size:clamp(24px,3.2vw,42px);text-transform:uppercase}
+.stage-sub{margin:6px 0 0;color:#aebbd7;font-weight:700}
+.progress-track{
+  width:min(320px,42vw);height:9px;background:#111d39;border-radius:999px;
+  border:1px solid rgba(255,255,255,.08);overflow:hidden;
+}
+.progress-fill{
+  height:100%;width:0;background:linear-gradient(90deg,#4fd96d,#47d6e8,#4f8dff);
+  transition:width .25s ease;border-radius:inherit;
+}
+
+.cards{
+  display:grid;
+  grid-template-columns:repeat(6,minmax(110px,1fr));
+  gap:9px;
+  margin-bottom:10px;
+}
+.card{
+  min-height:88px;
+  border:0;border-radius:14px;
+  background:white;color:#11182a;
+  box-shadow:0 10px 0 #cbd5e5,0 19px 36px rgba(0,0,0,.28);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:5px;padding:8px 8px;
+  cursor:grab;user-select:none;touch-action:manipulation;
+  transition:.17s ease;
+}
+.card:hover{transform:translateY(-3px)}
+.card:active{cursor:grabbing}
+.card.selected{outline:4px solid var(--yellow);transform:translateY(-4px) scale(1.02)}
+.card.dragging{opacity:.45}
+.card.done{visibility:hidden;pointer-events:none}
+.card-icon{font-size:31px;line-height:1}
+.card-name{font-weight:1000;text-transform:uppercase;font-size:13px;text-align:center}
+.card-hint{font-size:10px;color:#6f7a91;text-align:center;font-weight:700;line-height:1.05}
+
+.zones{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;
+  flex:1;
+  min-height:0;
+}
+.zone{
+  min-height:170px;border:3px dashed #6f7db0;border-radius:22px;
+  padding:12px;background:rgba(10,22,49,.62);transition:.18s ease;
+  overflow:auto;
+}
+.zone.hover{border-color:var(--yellow);box-shadow:0 0 0 7px rgba(255,213,76,.11)}
+.zone.bad{animation:shake .28s linear 2;border-color:var(--red)}
+.zone-title{
+  display:flex;align-items:center;gap:10px;margin-bottom:10px;
+  font-size:21px;font-weight:1000;text-transform:uppercase;
+}
+.zone-title .tag{
+  font-size:10px;padding:5px 8px;border-radius:999px;background:#fff;color:#18213a
+}
+.zone p{margin:0 0 12px;color:#aebbd7;font-weight:700}
+.zone-items{display:flex;flex-wrap:wrap;gap:10px;align-content:flex-start}
+.chip{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 9px;border-radius:12px;background:#fff;color:#141c31;
+  font-weight:1000;box-shadow:0 8px 18px rgba(0,0,0,.22);
+  animation:pop .22s ease;
+}
+.chip span:first-child{font-size:23px}
+
+.sequence-board{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:12px;align-items:center;
+  margin-top:4px;
+  flex:1;
+  min-height:0;
+}
+.seq-slot{
+  min-height:145px;border:3px dashed #8796d7;border-radius:20px;
+  background:rgba(8,20,47,.60);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:#7f8bad;position:relative;transition:.17s ease;
+}
+.seq-slot .num{font-size:42px;font-weight:1000}
+.seq-slot::after{
+  content:"➜";position:absolute;right:-22px;color:#8fa7ff;font-size:28px;z-index:2;
+}
+.seq-slot:last-child::after{display:none}
+.seq-slot.hover{border-color:var(--yellow);box-shadow:0 0 0 6px rgba(255,213,76,.12)}
+.seq-slot.good{border-color:var(--green);background:rgba(34,113,66,.18)}
+.seq-slot.bad{animation:shake .28s linear 2;border-color:var(--red)}
+.seq-content{
+  display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
+  font-weight:1000;text-transform:uppercase;color:white;padding:10px;
+}
+.seq-content .big{font-size:48px}
+.check{
+  position:absolute;right:-4px;top:-12px;width:42px;height:42px;border-radius:50%;
+  display:grid;place-items:center;background:var(--green);border:4px solid #0a2440;
+  font-size:24px;color:white;font-weight:1000;
+}
+.route{
+  margin-top:8px;
+  display:flex;align-items:center;gap:12px;
+  color:#9fb0d1;font-weight:900;text-transform:uppercase;font-size:13px;
+}
+.route .line{height:2px;flex:1;background:linear-gradient(90deg,#9d78ff,#47d6e8,#4fd96d)}
+
+.navarra-board{
+  display:grid;grid-template-columns:240px 1fr;gap:14px;align-items:stretch;
+  flex:1;
+  min-height:0;
+}
+.map-wrap{
+  display:grid;place-items:center;border-radius:26px;
+  background:radial-gradient(circle at 50% 35%,rgba(79,141,255,.14),transparent 54%);
+  border:1px solid rgba(255,255,255,.08);padding:10px;
+  overflow:hidden;
+}
+.navarra-map{
+  width:150px;height:245px;position:relative;
+  filter:drop-shadow(0 14px 26px rgba(0,0,0,.3));
+}
+.navarra-shape{
+  position:absolute;inset:0;
+  clip-path:polygon(45% 0,67% 5%,83% 18%,79% 34%,91% 49%,78% 66%,66% 74%,57% 100%,40% 91%,26% 77%,10% 67%,16% 47%,7% 31%,22% 19%,28% 5%);
+  background:linear-gradient(180deg,#6bb9ff 0 24%,#6ae08c 24% 49%,#f6c95e 49% 74%,#e37b4a 74% 100%);
+  border:3px solid rgba(255,255,255,.75);
+}
+.map-label{
+  position:absolute;left:50%;transform:translateX(-50%);
+  font-size:12px;font-weight:1000;text-transform:uppercase;color:#081326;
+  background:rgba(255,255,255,.83);padding:4px 7px;border-radius:8px;
+}
+.map-label.n1{top:14%}.map-label.n2{top:38%}.map-label.n3{top:61%}.map-label.n4{top:84%}
+.ns{position:absolute;right:-30px;top:20px;bottom:20px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;color:#cfe0ff;font-weight:1000}
+.ns .bar{width:2px;flex:1;background:linear-gradient(#47d6e8,#f6c95e,#e37b4a);margin:6px 0}
+
+.navarra-slots{display:grid;grid-template-rows:repeat(4,1fr);gap:12px}
+.nav-slot{
+  min-height:72px;border:3px dashed #8492ce;border-radius:18px;
+  background:rgba(8,20,47,.6);display:flex;align-items:center;justify-content:center;
+  position:relative;color:#7f8bad;transition:.17s ease;
+}
+.nav-slot .num{font-size:34px;font-weight:1000}
+.nav-slot.hover{border-color:var(--yellow);box-shadow:0 0 0 6px rgba(255,213,76,.12)}
+.nav-slot.good{border-color:var(--green);background:rgba(34,113,66,.18)}
+.nav-slot.bad{animation:shake .28s linear 2;border-color:var(--red)}
+.nav-content{
+  width:100%;display:grid;grid-template-columns:48px 1fr;gap:10px;
+  align-items:center;padding:8px 12px;color:white;
+}
+.nav-content .emoji{font-size:34px;text-align:center}
+.nav-content b{display:block;font-size:16px;text-transform:uppercase}
+.nav-content small{color:#c1cce4;font-size:11px;font-weight:700}
+
+.feedback{min-height:58px;display:flex;align-items:center;justify-content:center;margin-top:8px}
+.toast{
+  width:min(720px,100%);display:none;grid-template-columns:58px 1fr;gap:16px;align-items:center;
+  padding:10px 16px;border-radius:15px;box-shadow:var(--shadow);
+  border:1px solid rgba(255,255,255,.18);animation:slide .24s ease;
+}
+.toast.show{display:grid}
+.toast.info{background:linear-gradient(135deg,#315bc6,#4f8dff)}
+.toast.success{background:linear-gradient(135deg,#2aa949,#55d96c)}
+.toast.error{background:linear-gradient(135deg,#db3038,#ff575a)}
+.toast-icon{
+  width:42px;height:42px;border-radius:50%;display:grid;place-items:center;
+  background:white;color:#131b2f;font-size:29px;font-weight:1000;
+}
+.toast strong{display:block;font-size:18px;margin-bottom:2px}
+.toast span{font-weight:800;font-size:13px}
+
+.next-row{display:flex;justify-content:center;margin-top:2px}
+.primary{
+  border:0;border-radius:14px;padding:10px 20px;font-weight:1000;font-size:16px;
+  color:white;background:linear-gradient(135deg,#ff4a4b,#e72a4c);cursor:pointer;
+  box-shadow:0 12px 28px rgba(231,42,76,.32);display:none;
+}
+.primary.show{display:inline-block}
+.primary:hover{transform:translateY(-2px)}
+
+.modal{
+  position:fixed;inset:0;background:rgba(0,5,18,.80);backdrop-filter:blur(7px);
+  display:none;place-items:center;padding:20px;z-index:20;
+}
+.modal.show{display:grid}
+.modal-card{
+  width:min(650px,100%);border-radius:30px;padding:36px 30px;text-align:center;
+  background:linear-gradient(180deg,#10234a,#09152f);
+  border:2px solid rgba(255,255,255,.14);box-shadow:0 30px 100px rgba(0,0,0,.58);
+}
+.modal-icon{font-size:78px;animation:float 1.15s ease-in-out infinite alternate}
+.modal-card h2{margin:8px 0;font-size:clamp(30px,6vw,54px);text-transform:uppercase}
+.modal-card p{color:#c7d2e9;font-size:18px;margin:0 0 22px}
+
+@keyframes pop{from{opacity:.2;transform:scale(.72)}to{opacity:1;transform:scale(1)}}
+@keyframes slide{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}75%{transform:translateX(7px)}}
+@keyframes float{to{transform:translateY(-8px) rotate(3deg)}}
+
+@media(max-width:1180px){
+  .cards{grid-template-columns:repeat(3,1fr)}
+  .sequence-board{overflow-x:auto;grid-template-columns:repeat(6,160px);padding-bottom:8px}
+  .navarra-board{grid-template-columns:240px 1fr}
+}
+@media(max-width:760px){
+  .game{padding:12px}
+  .topbar{align-items:flex-start}
+  .top-actions{flex-wrap:wrap;justify-content:flex-end}
+  h1{font-size:21px}
+  .round-pill{display:none}
+  .mission-row{align-items:flex-start;flex-direction:column}
+  .legend{justify-content:flex-start}
+  .cards{grid-template-columns:repeat(2,1fr)}
+  .zones{grid-template-columns:1fr}
+  .stage{padding:16px}
+  .stage-head{align-items:flex-start;flex-direction:column}
+  .progress-track{width:100%}
+  .navarra-board{grid-template-columns:1fr}
+  .map-wrap{min-height:300px}
+  .navarra-map{height:280px;width:170px}
+}
+
+#gameArea{
+  flex:1;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+@media (max-height:820px){
+  .game{padding-top:7px;padding-bottom:8px}
+  .brand-icon{width:44px;height:44px}
+  .topbar{margin-bottom:5px}
+  .mission-row{margin-bottom:5px}
+  .instruction{padding:7px 11px}
+  .card{min-height:78px}
+  .card-icon{font-size:28px}
+  .zone{min-height:150px}
+  .feedback{min-height:52px;margin-top:5px}
+  .toast{padding:8px 14px}
+}
+@media (max-height:720px){
+  .legend{display:none}
+  .stage-sub{display:none}
+  .card-hint{display:none}
+  .card{min-height:68px}
+  .card-icon{font-size:25px}
+  .zone{min-height:128px}
+  .zone p{display:none}
+  .feedback{min-height:46px}
+  .toast-icon{width:36px;height:36px;font-size:22px}
+  .toast strong{font-size:16px}
+  .toast span{font-size:12px}
+}
+
+</style>
+</head>
+<body>
+<main class="game">
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-icon">🧭</div>
+      <h1>Misión: Territorio en capas</h1>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="soundBtn" title="Sonido" aria-label="Activar o desactivar sonido">🔊</button>
+      <button class="icon-btn" id="resetBtn" title="Reiniciar" aria-label="Reiniciar juego">↻</button>
+      <div class="round-pill" id="roundPill">Ronda 1 de 3</div>
+      <div class="counter" id="counter">0/12</div>
+    </div>
+  </header>
+
+  <section class="mission-row">
+    <div class="instruction"><span>⭐</span><small id="instructionText">ARRASTRA CADA ELEMENTO A SU CATEGORÍA CORRECTA</small></div>
+    <div class="legend"><span>🖱️ Arrastra</span><span>👆 O pulsa y coloca</span><span>✅ Aprende con cada intento</span></div>
+  </section>
+
+  <section class="stage">
+    <div class="stage-head">
+      <div>
+        <h2 class="stage-title" id="stageTitle">Relieve interior o costero</h2>
+        <p class="stage-sub" id="stageSub">Reconstruye el mapa clasificando las formas del relieve.</p>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <div id="gameArea"></div>
+
+    <div class="feedback" aria-live="assertive" aria-atomic="true">
+      <div class="toast info show" id="toast">
+        <div class="toast-icon" id="toastIcon">☝️</div>
+        <div><strong id="toastTitle">¡Comienza la misión!</strong><span id="toastText">Selecciona una tarjeta y colócala en el lugar correcto.</span></div>
+      </div>
+    </div>
+
+    <div class="next-row"><button class="primary" id="nextBtn">Siguiente ronda</button></div>
+  </section>
+</main>
+
+<div class="modal" id="finalModal" role="dialog" aria-modal="true" aria-labelledby="finalTitle">
+  <div class="modal-card">
+    <div class="modal-icon">🗺️</div>
+    <h2 id="finalTitle">¡Territorio reconstruido!</h2>
+    <p>Has clasificado el relieve, ordenado el recorrido del río y situado las grandes zonas de Navarra.</p>
+    <button class="primary show" id="againBtn">Jugar otra vez</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const ROUNDS = [
+    {
+      type:"classify",
+      title:"Relieve interior o costero",
+      sub:"Reconstruye el mapa clasificando las formas del relieve.",
+      instruction:"ARRASTRA CADA ELEMENTO A SU CATEGORÍA CORRECTA",
+      total:12,
+      items:[
+        {id:"montana",name:"Montaña",icon:"⛰️",cat:"interior",hint:"Gran elevación del terreno",feedback:"Una montaña es una gran elevación del terreno."},
+        {id:"cordillera",name:"Cordillera",icon:"🏔️",cat:"interior",hint:"Conjunto de montañas",feedback:"Una cordillera es un conjunto de montañas enlazadas."},
+        {id:"meseta",name:"Meseta",icon:"🟫",cat:"interior",hint:"Llanura elevada",feedback:"Una meseta es una superficie llana situada a cierta altitud."},
+        {id:"llanura",name:"Llanura",icon:"🌾",cat:"interior",hint:"Terreno plano",feedback:"Una llanura es una extensión amplia y poco elevada."},
+        {id:"valle",name:"Valle",icon:"🏞️",cat:"interior",hint:"Zona baja entre montañas",feedback:"Un valle es una zona baja situada entre montañas."},
+        {id:"depresion",name:"Depresión",icon:"⬇️",cat:"interior",hint:"Zona más baja que su entorno",feedback:"Una depresión se encuentra a menor altura que las tierras cercanas."},
+        {id:"cabo",name:"Cabo",icon:"🪨",cat:"costero",hint:"Tierra que entra en el mar",feedback:"Un cabo es una porción de tierra que se adentra en el mar."},
+        {id:"golfo",name:"Golfo",icon:"🌊",cat:"costero",hint:"Mar que entra en la tierra",feedback:"Un golfo es una gran entrada del mar en la costa."},
+        {id:"peninsula",name:"Península",icon:"🗺️",cat:"costero",hint:"Rodeada de agua casi por completo",feedback:"Una península está rodeada de agua excepto por una zona de unión."},
+        {id:"isla",name:"Isla",icon:"🏝️",cat:"costero",hint:"Tierra rodeada de agua",feedback:"Una isla es una porción de tierra rodeada de agua."},
+        {id:"archipielago",name:"Archipiélago",icon:"🏝️🏝️",cat:"costero",hint:"Conjunto de islas",feedback:"Un archipiélago es un conjunto de islas próximas."},
+        {id:"acantilado",name:"Acantilado",icon:"🧗",cat:"costero",hint:"Costa alta y rocosa",feedback:"Un acantilado es una costa alta, rocosa y de fuerte pendiente."}
+      ]
+    },
+    {
+      type:"sequence",
+      title:"Del monte al mar",
+      sub:"Ordena el recorrido de un río desde su nacimiento hasta el mar.",
+      instruction:"COLOCA LAS TARJETAS SIGUIENDO EL RECORRIDO DEL RÍO",
+      total:6,
+      items:[
+        {id:"montana",name:"Montaña",icon:"🏔️",pos:1,feedback:"El recorrido comienza en una zona elevada de montaña."},
+        {id:"nacimiento",name:"Nacimiento",icon:"💧",pos:2,feedback:"El nacimiento es el lugar donde comienza el río."},
+        {id:"valle",name:"Valle",icon:"🏞️",pos:3,feedback:"El río desciende y suele atravesar valles."},
+        {id:"llanura",name:"Llanura",icon:"🌾",pos:4,feedback:"En la llanura, el río suele discurrir con menor pendiente."},
+        {id:"desembocadura",name:"Desembocadura",icon:"🌊",pos:5,feedback:"La desembocadura es el punto donde el río vierte sus aguas."},
+        {id:"mar",name:"Mar",icon:"🌅",pos:6,feedback:"El recorrido termina cuando el agua llega al mar."}
+      ]
+    },
+    {
+      type:"navarra",
+      title:"Navarra de norte a sur",
+      sub:"Ordena las grandes zonas del territorio navarro siguiendo la dirección norte-sur.",
+      instruction:"COLOCA LAS ZONAS DE NAVARRA DE NORTE A SUR",
+      total:4,
+      items:[
+        {id:"pirineo",name:"Pirineo",icon:"🏔️",pos:1,desc:"Relieve montañoso del norte.",feedback:"El Pirineo se sitúa en el norte de Navarra."},
+        {id:"cuenca",name:"Cuenca de Pamplona",icon:"🏙️",pos:2,desc:"Área central en torno a Pamplona.",feedback:"La Cuenca de Pamplona se encuentra al sur del Pirineo."},
+        {id:"media",name:"Zona Media",icon:"🏰",pos:3,desc:"Territorio de transición.",feedback:"La Zona Media enlaza la montaña y la Ribera."},
+        {id:"ribera",name:"Ribera",icon:"🌻",pos:4,desc:"Paisaje más llano y seco del sur.",feedback:"La Ribera ocupa el sur de Navarra."}
+      ]
+    }
+  ];
+
+  const gameArea = document.getElementById("gameArea");
+  const counter = document.getElementById("counter");
+  const roundPill = document.getElementById("roundPill");
+  const stageTitle = document.getElementById("stageTitle");
+  const stageSub = document.getElementById("stageSub");
+  const instructionText = document.getElementById("instructionText");
+  const progressFill = document.getElementById("progressFill");
+  const toast = document.getElementById("toast");
+  const toastIcon = document.getElementById("toastIcon");
+  const toastTitle = document.getElementById("toastTitle");
+  const toastText = document.getElementById("toastText");
+  const nextBtn = document.getElementById("nextBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const soundBtn = document.getElementById("soundBtn");
+  const finalModal = document.getElementById("finalModal");
+  const againBtn = document.getElementById("againBtn");
+
+  let roundIndex = 0;
+  let selectedId = null;
+  let completed = 0;
+  let soundOn = true;
+  let audioCtx = null;
+
+  const shuffle = arr => {
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+    return a;
+  };
+
+  function getAudio(){
+    if(!audioCtx){
+      const Ctx=window.AudioContext||window.webkitAudioContext;
+      if(Ctx) audioCtx=new Ctx();
+    }
+    return audioCtx;
+  }
+  function beep(freq=440,d=.08){
+    if(!soundOn) return;
+    const ctx=getAudio(); if(!ctx) return;
+    const osc=ctx.createOscillator(), gain=ctx.createGain();
+    osc.type="sine"; osc.frequency.value=freq;
+    gain.gain.setValueAtTime(.0001,ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.12,ctx.currentTime+.01);
+    gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+d);
+    osc.connect(gain).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime+d+.02);
+  }
+  function successSound(){beep(760,.08);setTimeout(()=>beep(980,.1),90)}
+  function finishSound(){[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.12),i*120))}
+
+  function showToast(type,icon,title,text){
+    toast.className=`toast ${type} show`;
+    toastIcon.textContent=icon;
+    toastTitle.textContent=title;
+    toastText.textContent=text;
+  }
+
+  function updateProgress(total){
+    counter.textContent=`${completed}/${total}`;
+    progressFill.style.width=`${(completed/total)*100}%`;
+  }
+
+  function createCard(item){
+    const c=document.createElement("button");
+    c.type="button"; c.className="card"; c.dataset.id=item.id; c.draggable=true;
+    c.innerHTML=`<div class="card-icon">${item.icon}</div><div class="card-name">${item.name}</div>${item.hint?`<div class="card-hint">${item.hint}</div>`:""}`;
+    c.setAttribute("aria-label",`${item.name}. Seleccionar tarjeta.`);
+    c.addEventListener("click",()=>selectCard(item.id));
+    c.addEventListener("dragstart",e=>{
+      selectedId=item.id;c.classList.add("dragging");
+      e.dataTransfer.setData("text/plain",item.id);e.dataTransfer.effectAllowed="move";
+    });
+    c.addEventListener("dragend",()=>c.classList.remove("dragging"));
+    return c;
+  }
+
+  function selectCard(id){
+    const card=gameArea.querySelector(`.card[data-id="${id}"]`);
+    if(!card||card.classList.contains("done")) return;
+    gameArea.querySelectorAll(".card").forEach(x=>x.classList.remove("selected"));
+    selectedId=id; card.classList.add("selected");
+    const item=ROUNDS[roundIndex].items.find(x=>x.id===id);
+    showToast("info","🧩",`${item.name} seleccionado`,"Ahora elige el lugar en el que debe colocarse.");
+    beep(440,.06);
+  }
+
+  function renderRound(){
+    const r=ROUNDS[roundIndex];
+    selectedId=null;completed=0;gameArea.innerHTML="";
+    stageTitle.textContent=r.title;stageSub.textContent=r.sub;instructionText.textContent=r.instruction;
+    roundPill.textContent=`Ronda ${roundIndex+1} de 3`;nextBtn.classList.remove("show");
+    updateProgress(r.total);
+    showToast("info","☝️","¡Nueva misión!","Selecciona una tarjeta y colócala en el lugar correcto.");
+    if(r.type==="classify") renderClassify(r);
+    if(r.type==="sequence") renderSequence(r);
+    if(r.type==="navarra") renderNavarra(r);
+  }
+
+  function renderClassify(r){
+    const cards=document.createElement("div");cards.className="cards";
+    shuffle(r.items).forEach(item=>cards.appendChild(createCard(item)));
+    const zones=document.createElement("div");zones.className="zones";
+    [
+      {id:"interior",title:"Interiores",tag:"Relieve continental",icon:"⛰️",desc:"Formas del relieve situadas dentro del territorio."},
+      {id:"costero",title:"Costeros",tag:"Relieve litoral",icon:"🌊",desc:"Formas del relieve relacionadas con el contacto entre tierra y mar."}
+    ].forEach(z=>{
+      const zone=document.createElement("div");zone.className="zone";zone.dataset.cat=z.id;
+      zone.innerHTML=`<div class="zone-title">${z.icon} ${z.title}<span class="tag">${z.tag}</span></div><p>${z.desc}</p><div class="zone-items"></div>`;
+      setupDrop(zone,(id)=>attemptClassify(id,z.id,zone));
+      zone.addEventListener("click",e=>{if(e.target.closest(".chip"))return;if(!selectedId)return noSelection();attemptClassify(selectedId,z.id,zone)});
+      zones.appendChild(zone);
+    });
+    gameArea.append(cards,zones);
+  }
+
+  function attemptClassify(id,cat,zone){
+    if(!id) return noSelection();
+    const r=ROUNDS[roundIndex], item=r.items.find(x=>x.id===id);
+    const card=gameArea.querySelector(`.card[data-id="${id}"]`);
+    if(!item||!card||card.classList.contains("done")) return;
+    if(item.cat===cat){
+      const chip=document.createElement("div");chip.className="chip";chip.innerHTML=`<span>${item.icon}</span><span>${item.name}</span>`;
+      zone.querySelector(".zone-items").appendChild(chip);
+      card.classList.add("done");card.classList.remove("selected");selectedId=null;completed++;updateProgress(r.total);
+      showToast("success","✓","¡Correcto!",item.feedback);successSound();checkRoundComplete(r);
+    }else{
+      fail(zone,item,`“${item.name}” no pertenece a esta categoría. Observa su definición y vuelve a intentarlo.`);
+    }
+  }
+
+  function renderSequence(r){
+    const cards=document.createElement("div");cards.className="cards";
+    shuffle(r.items).forEach(item=>cards.appendChild(createCard(item)));
+    const board=document.createElement("div");board.className="sequence-board";
+    for(let i=1;i<=r.total;i++){
+      const slot=document.createElement("button");slot.type="button";slot.className="seq-slot";slot.dataset.pos=i;
+      slot.innerHTML=`<span class="num">${i}</span>`;
+      setupDrop(slot,id=>attemptSequence(id,i,slot));
+      slot.addEventListener("click",()=>{if(!selectedId)return noSelection();attemptSequence(selectedId,i,slot)});
+      board.appendChild(slot);
+    }
+    const route=document.createElement("div");route.className="route";
+    route.innerHTML=`<span>Zonas elevadas</span><span class="line"></span><span>Mar</span>`;
+    gameArea.append(cards,board,route);
+  }
+
+  function attemptSequence(id,pos,slot){
+    if(slot.classList.contains("good"))return;
+    const r=ROUNDS[roundIndex],item=r.items.find(x=>x.id===id);
+    const card=gameArea.querySelector(`.card[data-id="${id}"]`);
+    if(!item||!card||card.classList.contains("done"))return;
+    if(item.pos===pos){
+      slot.innerHTML=`<div class="seq-content"><span class="big">${item.icon}</span><span>${item.name}</span></div><div class="check">✓</div>`;
+      slot.classList.add("good");slot.disabled=true;card.classList.add("done");card.classList.remove("selected");
+      selectedId=null;completed++;updateProgress(r.total);
+      showToast("success","✓","¡Orden correcto!",item.feedback);successSound();checkRoundComplete(r);
+    }else{
+      fail(slot,item,`${item.name} no ocupa la posición ${pos} en este recorrido. Pruébalo otra vez.`);
+    }
+  }
+
+  function renderNavarra(r){
+    const cards=document.createElement("div");cards.className="cards";
+    cards.style.gridTemplateColumns="repeat(4,minmax(130px,1fr))";
+    shuffle(r.items).forEach(item=>cards.appendChild(createCard(item)));
+    const board=document.createElement("div");board.className="navarra-board";
+    const map=document.createElement("div");map.className="map-wrap";
+    map.innerHTML=`
+      <div class="navarra-map">
+        <div class="navarra-shape"></div>
+        <span class="map-label n1">Zona 1</span>
+        <span class="map-label n2">Zona 2</span>
+        <span class="map-label n3">Zona 3</span>
+        <span class="map-label n4">Zona 4</span>
+        <div class="ns"><span>N</span><span class="bar"></span><span>S</span></div>
+      </div>`;
+    const slots=document.createElement("div");slots.className="navarra-slots";
+    for(let i=1;i<=4;i++){
+      const slot=document.createElement("button");slot.type="button";slot.className="nav-slot";slot.dataset.pos=i;
+      slot.innerHTML=`<span class="num">${i}</span>`;
+      setupDrop(slot,id=>attemptNavarra(id,i,slot));
+      slot.addEventListener("click",()=>{if(!selectedId)return noSelection();attemptNavarra(selectedId,i,slot)});
+      slots.appendChild(slot);
+    }
+    board.append(map,slots);gameArea.append(cards,board);
+  }
+
+  function attemptNavarra(id,pos,slot){
+    if(slot.classList.contains("good"))return;
+    const r=ROUNDS[roundIndex],item=r.items.find(x=>x.id===id);
+    const card=gameArea.querySelector(`.card[data-id="${id}"]`);
+    if(!item||!card||card.classList.contains("done"))return;
+    if(item.pos===pos){
+      slot.innerHTML=`<div class="nav-content"><span class="emoji">${item.icon}</span><div><b>${item.name}</b><small>${item.desc}</small></div></div><div class="check">✓</div>`;
+      slot.classList.add("good");slot.disabled=true;card.classList.add("done");card.classList.remove("selected");
+      selectedId=null;completed++;updateProgress(r.total);
+      showToast("success","✓","¡Zona asegurada!",item.feedback);successSound();checkRoundComplete(r);
+    }else{
+      fail(slot,item,`${item.name} no se encuentra en la posición ${pos} de norte a sur. Observa el mapa.`);
+    }
+  }
+
+  function setupDrop(el,handler){
+    el.addEventListener("dragover",e=>{e.preventDefault();if(!el.classList.contains("good"))el.classList.add("hover")});
+    el.addEventListener("dragleave",()=>el.classList.remove("hover"));
+    el.addEventListener("drop",e=>{
+      e.preventDefault();el.classList.remove("hover");
+      const id=e.dataTransfer.getData("text/plain")||selectedId;handler(id);
+    });
+  }
+
+  function fail(el,item,msg){
+    el.classList.remove("bad");void el.offsetWidth;el.classList.add("bad");
+    gameArea.querySelectorAll(".card").forEach(x=>x.classList.remove("selected"));
+    selectedId=null;showToast("error","✕","Ups…",msg);beep(180,.14);
+    setTimeout(()=>el.classList.remove("bad"),650);
+  }
+
+  function noSelection(){
+    showToast("info","☝️","Selecciona una tarjeta","Pulsa primero sobre una tarjeta y después sobre su lugar.");
+  }
+
+  function checkRoundComplete(r){
+    if(completed!==r.total)return;
+    setTimeout(()=>{
+      if(roundIndex<ROUNDS.length-1){
+        showToast("success","🏅","¡Ronda completada!","Has recuperado una parte del mapa. Continúa con la siguiente misión.");
+        nextBtn.textContent="Siguiente ronda";nextBtn.classList.add("show");finishSound();
+      }else{
+        finalModal.classList.add("show");finishSound();
+      }
+    },450);
+  }
+
+  nextBtn.addEventListener("click",()=>{roundIndex++;renderRound()});
+  resetBtn.addEventListener("click",()=>{roundIndex=0;finalModal.classList.remove("show");renderRound()});
+  againBtn.addEventListener("click",()=>{roundIndex=0;finalModal.classList.remove("show");renderRound()});
+  soundBtn.addEventListener("click",()=>{
+    soundOn=!soundOn;soundBtn.textContent=soundOn?"🔊":"🔇";
+    soundBtn.setAttribute("aria-label",soundOn?"Desactivar sonido":"Activar sonido");
+    if(soundOn)beep(620,.08);
+  });
+  document.addEventListener("keydown",e=>{
+    if(e.key==="Escape"){
+      selectedId=null;gameArea.querySelectorAll(".card").forEach(x=>x.classList.remove("selected"));
+      finalModal.classList.remove("show");
+    }
+  });
+
+  renderRound();
+})();
+</script>
+</body>
+</html>
